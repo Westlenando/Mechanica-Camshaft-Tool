@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+
+        #inputs {
+            flex: 1;
+        }
+
+        #canvasContainer {
+            margin-left: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+	<body>
+		<div id="container">
+			<div id="inputs">
+				Crank radius <input id="radius"><br>
+				Num of cylinders <input id="cylinders"><br>
+				Firing Pattern <input id="firingPattern"><br> <!-- Add firing pattern input field -->
+				<button onclick="calculate()">Calculate</button> <br>
+				Spacing: <input type="range" id="spacingSlider" min="10" max="200" step="10" value="70">
+				<button onclick="switchtoraw()">Switch Output Mode</button>
+				<p id="output"></p>
+			</div>
+			<div id="canvasContainer">
+				<canvas id="canvas" width="400" height="400"></canvas>
+			</div>
+		</div>
+
+		<script>
+			let israw = false;
+			let rawdata = "";
+			let output = "";
+			let spacing = 70;
+
+			function switchtoraw() {
+				if (rawdata != "") {
+					if (israw) {
+						document.getElementById("output").innerHTML = `<b>Formatted Data</b><br>${output}`;
+					} else {
+						document.getElementById("output").innerHTML = `<b>Raw Data</b><br>${rawdata}`;
+					}
+					israw = !israw; // Toggle the israw flag
+				}
+				
+				// Clear both output and rawdata when switching to formatted data
+				if (!israw) {
+					output = "";
+					rawdata = "";
+				}
+			}
+
+
+			function calculate() {
+				// Clear the previous output content
+				output = "";
+
+				let values = [1, 2];
+
+				const crank_radius = parseFloat(document.getElementById("radius").value);
+				const num_cylinders = parseInt(document.getElementById("cylinders").value);
+				const firingPatternInput = document.getElementById("firingPattern").value;
+				const firingPattern = firingPatternInput.split('-').map(item => parseInt(item) - 1);
+
+				const canvas = document.getElementById("canvas");
+				const context = canvas.getContext("2d");
+				context.clearRect(0, 0, canvas.width, canvas.height);
+
+				function counteract(x) {
+					return x * -1;
+				}
+
+				const centerX = canvas.width / 2;
+				const centerY = canvas.height / 2;
+
+				for (let i = 0; i < num_cylinders; i++) {
+					const cylinderIndex = firingPattern[i];
+					const theta = (cylinderIndex * (360 / num_cylinders)) * (Math.PI / 180);
+					const B = parseFloat((crank_radius * Math.sin(theta)).toFixed(2));
+					const A = parseFloat((crank_radius * Math.cos(theta)).toFixed(2));
+
+					if (i !== 0) {
+						const to_append = `Cylinder ${i + 1}: X = ${Math.floor((A + counteract(values[0])) * 1000) / 1000}, Z = ${Math.floor((B + counteract(values[1])) * 1000) / 1000}<br>`;
+						output = output + to_append;
+					} else {
+						output = output + `Cylinder 1: X = ${Math.floor(A * 1000) / 1000}, Z = ${Math.floor(B * 1000) / 1000}<br>`;
+					}
+					rawdata = rawdata + `Cylinder ${i + 1}: X = ${Math.floor(A * 1000) / 1000}, Z = ${Math.floor(B * 1000) / 1000}<br>`;
+
+					const canvasX = centerX + A * spacing;
+					const canvasY = centerY - B * spacing;
+					context.fillStyle = "blue";
+					context.beginPath();
+					context.arc(canvasX, canvasY, 5, 0, 2 * Math.PI);
+					context.fill();
+
+					context.fillStyle = "black";
+					context.fillText(`C${i + 1}`, canvasX + 8, canvasY - 8);
+
+					values = [A, B];
+				}
+
+				israw = false;
+				document.getElementById("output").innerHTML = `<b>Formatted Data</b><br>${output}`;
+			}
+
+
+			document.getElementById("spacingSlider").addEventListener("input", function () {
+				spacing = parseInt(this.value);
+				calculate();
+			});
+		</script>
+	</body>
+</html>
